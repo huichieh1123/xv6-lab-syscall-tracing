@@ -1,5 +1,4 @@
 #include "types.h"
-#include "param.h"
 #include "memlayout.h"
 #include "riscv.h"
 #include "spinlock.h"
@@ -25,6 +24,20 @@ extern char trampoline[]; // trampoline.S
 // memory model when using p->parent.
 // must be acquired before any p->lock.
 struct spinlock wait_lock;
+
+struct proc*
+find_proc_by_pid(int pid)
+{
+  struct proc *p;
+    for(p = proc; p < &proc[NPROC]; p++) {
+      acquire(&p->lock);
+      if (p->pid == pid) {
+        return p;
+      }
+      release(&p->lock);
+    }
+    return NULL;
+}
 
 // Allocate a page for each process's kernel stack.
 // Map it high in memory, followed by an invalid
