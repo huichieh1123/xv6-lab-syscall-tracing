@@ -15,7 +15,6 @@ int main(int argc, char *argv[]) {
     }
 
     if (pid > 0) {
-        // parent: trace the child
         trace(pid);
         wait(0);
     } else {

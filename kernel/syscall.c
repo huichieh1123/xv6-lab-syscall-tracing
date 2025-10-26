@@ -164,53 +164,63 @@ syscall(void)
   num = p->trapframe->a7;
 
   if(num > 0 && num < NELEM(syscalls) && syscalls[num]) {
-    // Use num to lookup the system call function for num, call it,
-    // and store its return value in p->trapframe->a0
-
+    uint64 arg0 = argraw(0);
+    uint64 arg1 = argraw(1);
     uint64 ret = syscalls[num]();
     p->trapframe->a0 = ret;
 
-    if (p->traced)
-    {
-      // Print syscall name, first argument
+    if(p->traced){
       printf("[pid %d] %s(", p->pid, syscall_names[num]);
-      if (num == SYS_open || num == SYS_unlink ||  
-          num == SYS_chdir || num == SYS_mkdir || num == SYS_link)
-          /* ignore the second string argument of `link` */
-      {
-        // If the syscall is one of these five...
-        char buf[128];
-        if (fetchstr(argraw(0), buf, sizeof(buf)) == -1)
+      if (num == SYS_open || num == SYS_unlink ||
+          num == SYS_chdir || num == SYS_mkdir || num == SYS_link) {
+        char path[MAXPATH];
+        if (copyinstr(p->pagetable, path, arg0, sizeof(path)) < 0)
           printf("<bad ptr>");
-        else 
-          printf("(%s)", buf);
-        
+        else
+          printf("%s", path);
       }
-      else if ( num == SYS_exec ){
-        // If the syscall is exec... 
-        // exec — argv[0] 是程式名稱
-        uint64 argv;
-        if (fetchaddr(argraw(0), &argv) < 0) {
-          printf("<bad ptr>");
-        } else {
-          char buf[128];
-          if (fetchstr(argv, buf, sizeof(buf)) < 0)
-            printf("<bad ptr>");
-          else
-            printf("%s", buf);
-        }
+      // argv = ["echo", "hello", 0]
+      else if (num == SYS_exec) {
+    // 只印 argv[0]（程式名），抓不到才退回 path 的 basename
+    char prog[128];
+    int ok = 0;
+
+    uint64 uargv;            // user-space argv (char **)
+    if (fetchaddr(arg1, &uargv) == 0) {
+      uint64 uarg0 = 0;      // user-space argv[0] (char *)
+      // ★ 只讀 argv[0]：位移 = 0 * sizeof(uint64)
+      if (copyin(p->pagetable, (char *)&uarg0, uargv + 0 * sizeof(uint64), sizeof(uarg0)) == 0) {
+        if (uarg0 && fetchstr(uarg0, prog, sizeof(prog)) >= 0)
+          ok = 1;
       }
-      else
-      {
-        // If the syscall is any of the others...
-        printf("(%d)", (int)argraw(0));
-      }
-        // Print the remaining part.
-        printf(") = %d\n", (int)ret);
     }
+    if (!ok) {
+      // 取 path 的 basename 當程式名
+      char path[MAXPATH];
+      if (fetchstr(arg0, path, sizeof(path)) < 0) {
+        safestrcpy(prog, "<bad ptr>", sizeof(prog));
+      } else {
+        char *base = path;
+        for (char *s = path; *s; s++) if (*s == '/') base = s + 1;
+        safestrcpy(prog, base, sizeof(prog));
+      }
+    }
+    printf("\"%s\"", prog);
+
+    // ★ 只有 exec 失敗（ret < 0）時才會走到這裡，所以才有回傳值可印
+    printf(") = %d\n", (int)ret);
+    return; // 這個分支已經印完了，避免下面再印一次
+  }
+      else {
+        printf("%d", (int)arg0);
+      }
+      printf(") = %d\n", (int)ret);
+    }
+
   } else {
     printf("%d %s: unknown sys call %d\n",
            p->pid, p->name, num);
     p->trapframe->a0 = -1;
   }
 }
+

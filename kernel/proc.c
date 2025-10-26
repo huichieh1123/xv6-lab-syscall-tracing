@@ -31,15 +31,17 @@ struct proc*
 find_proc_by_pid(int pid)
 {
   struct proc *p;
-    for(p = proc; p < &proc[NPROC]; p++) {
-      acquire(&p->lock);
-      if (p->pid == pid) {
-        return p;
-      }
+  for (p = proc; p < &proc[NPROC]; p++) {
+    acquire(&p->lock);
+    if (p->pid == pid) {
       release(&p->lock);
+      return p;
     }
-    return NULL;
+    release(&p->lock);
+  }
+  return 0;
 }
+
 
 // Allocate a page for each process's kernel stack.
 // Map it high in memory, followed by an invalid
