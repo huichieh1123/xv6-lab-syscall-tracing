@@ -156,27 +156,6 @@ static uint64 (*syscalls[])(void) = {
 };
 
 
-
-
-
-void
-syscall(void)
-{
-  int num;
-  struct proc *p = myproc();
-
-  num = p->trapframe->a7;
-  if(num > 0 && num < NELEM(syscalls) && syscalls[num]) {
-    // Use num to lookup the system call function for num, call it,
-    // and store its return value in p->trapframe->a0
-    p->trapframe->a0 = syscalls[num]();
-  } else {
-    printf("%d %s: unknown sys call %d\n",
-            p->pid, p->name, num);
-    p->trapframe->a0 = -1;
-  }
-}
-
 void
 syscall(void)
 {
@@ -201,7 +180,7 @@ syscall(void)
       {
         // If the syscall is one of these five...
         char buf[128];
-        if (fetchstr(argrow(0), buf, sizeof(buf)) == -1)
+        if (fetchstr(argraw(0), buf, sizeof(buf)) == -1)
           printf("<bad ptr>");
         else 
           printf("(%s)", buf);
@@ -211,7 +190,7 @@ syscall(void)
         // If the syscall is exec... 
         // exec — argv[0] 是程式名稱
         uint64 argv;
-        if (fetchaddr(argrow(0), &argv) < 0) {
+        if (fetchaddr(argraw(0), &argv) < 0) {
           printf("<bad ptr>");
         } else {
           char buf[128];
