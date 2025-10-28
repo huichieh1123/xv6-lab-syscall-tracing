@@ -7,13 +7,11 @@ int main(int argc, char *argv[]) {
         printf("Usage: strace [program] [args...]\n");
         exit(1);
     }
-
     int pid = fork();
     if (pid < 0) {
         printf("strace: fork failed\n");
         exit(1);
     }
-
     if (pid > 0) {
         trace(pid);
         wait(0);

@@ -161,6 +161,9 @@ syscall(void)
 {
   int num;
   struct proc *p = myproc();
+  // a0 -> command in string's pointer
+  // a1 -> user space's args' pointer
+  // a7 -> syscall num
   num = p->trapframe->a7;
 
   if(num > 0 && num < NELEM(syscalls) && syscalls[num]) {
@@ -178,16 +181,15 @@ syscall(void)
         else
           printf("\"%s\"", path);
       }
-      // argv = ["echo", "hello", 0]
       else if (num == SYS_exec) {
         uint64 uargv;    // user space argv pointer
         uint64 uarg;     // pointer to a single argv[i]
-        char buf[128];
+        char buf[MAXPATH];
 
         argaddr(1, &uargv);   // 取得 argv 的 user pointer
-        if (fetchaddr(uargv, &uarg) < 0)
+        if (fetchaddr(uargv, &uarg) < 0) // uarg 是 user argv[0] 的位址
           printf("<bad ptr>");
-        else if (fetchstr(uarg, buf, sizeof(buf)) < 0)
+        else if (fetchstr(uarg, buf, sizeof(buf)) < 0) // 將user argv[0] 內容取出
           printf("<bad ptr>");
         else
           printf("\"%s\"", buf);
