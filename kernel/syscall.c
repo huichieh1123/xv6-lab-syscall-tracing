@@ -165,7 +165,6 @@ syscall(void)
 
   if(num > 0 && num < NELEM(syscalls) && syscalls[num]) {
     uint64 arg0 = argraw(0);
-    // uint64 arg1 = argraw(1);
     uint64 ret = syscalls[num]();
     p->trapframe->a0 = ret;
 
@@ -177,7 +176,7 @@ syscall(void)
         if (copyinstr(p->pagetable, path, arg0, sizeof(path)) < 0)
           printf("<bad ptr>");
         else
-          printf("%s", path);
+          printf("\"%s\"", path);
       }
       // argv = ["echo", "hello", 0]
       else if (num == SYS_exec) {
@@ -191,7 +190,7 @@ syscall(void)
         else if (fetchstr(uarg, buf, sizeof(buf)) < 0)
           printf("<bad ptr>");
         else
-          printf("%s", buf);
+          printf("\"%s\"", buf);
       } else {
         printf("%d", (int)arg0);
       }
