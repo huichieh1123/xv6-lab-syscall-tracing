@@ -170,7 +170,6 @@ syscall(void)
     uint64 arg0 = argraw(0);
     uint64 ret = syscalls[num]();
     p->trapframe->a0 = ret;
-
     if(p->traced){
       printf("[pid %d] %s(", p->pid, syscall_names[num]);
       if (num == SYS_open || num == SYS_unlink ||
