@@ -205,3 +205,40 @@ syscall(void)
   }
 }
 
+// same treatment to sys_exec
+// void
+// syscall(void)
+// {
+//   int num;
+//   struct proc *p = myproc();
+//   // a0 -> command in string's pointer
+//   // a1 -> user space's args' pointer
+//   // a7 -> syscall num
+//   num = p->trapframe->a7;
+//   if(num > 0 && num < NELEM(syscalls) && syscalls[num]) {
+//     uint64 arg0 = argraw(0);
+//     char path2[MAXPATH];
+//     int bad = copyinstr(p->pagetable, path2, arg0, sizeof(path2));
+//     uint64 ret = syscalls[num]();
+//     p->trapframe->a0 = ret;
+//     if(p->traced){
+//       printf("[pid %d] %s(", p->pid, syscall_names[num]);
+//       if (num == SYS_open || num == SYS_unlink ||
+//           num == SYS_chdir || num == SYS_mkdir || num == SYS_link ||
+//           num == SYS_exec) {
+//             if (bad < 0)
+//               printf("<bad ptr>");
+//             else
+//               printf("\"%s\"", path2);
+//       } else {
+//         printf("%d", (int)arg0);
+//       }
+//       printf(") = %d\n", (int)ret);
+//     }
+//   } else {
+//     printf("%d %s: unknown sys call %d\n",
+//            p->pid, p->name, num);
+//     p->trapframe->a0 = -1;
+//   }
+// }
+
