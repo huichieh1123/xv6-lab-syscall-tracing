@@ -168,9 +168,29 @@ syscall(void)
 
   if(num > 0 && num < NELEM(syscalls) && syscalls[num]) {
     uint64 arg0 = argraw(0);
+    
+    uint64 uargv;    // user space argv pointer
+    uint64 uarg;     // pointer to a single argv[i]
+    char exec_buf[MAXPATH];
+    int exec_ok;
+    int is_exec;
+    if (num == SYS_exec) {
+      is_exec = 1;
+      argaddr(1, &uargv);   // 取得 argv 的 user pointer
+      if (fetchaddr(uargv, &uarg) < 0) // uarg 是 user argv[0] 的位址
+        exec_ok = 0; 
+      else if (fetchstr(uarg, exec_buf, sizeof(exec_buf)) < 0) // 將user argv[0] 內容取出
+        exec_ok = 0; 
+      else
+        exec_ok = 1;
+    }
+    else{
+      is_exec = 0;
+    }
+
     uint64 ret = syscalls[num]();
     p->trapframe->a0 = ret;
-    if(p->traced){
+    if(p->traced){      
       printf("[pid %d] %s(", p->pid, syscall_names[num]);
       if (num == SYS_open || num == SYS_unlink ||
           num == SYS_chdir || num == SYS_mkdir || num == SYS_link) {
@@ -180,18 +200,13 @@ syscall(void)
         else
           printf("\"%s\"", path);
       }
-      else if (num == SYS_exec) {
-        uint64 uargv;    // user space argv pointer
-        uint64 uarg;     // pointer to a single argv[i]
-        char buf[MAXPATH];
-
-        argaddr(1, &uargv);   // 取得 argv 的 user pointer
-        if (fetchaddr(uargv, &uarg) < 0) // uarg 是 user argv[0] 的位址
+      else if (is_exec) {
+        if (exec_ok) {
+          printf("\"%s\"", exec_buf);
+        }
+        else {
           printf("<bad ptr>");
-        else if (fetchstr(uarg, buf, sizeof(buf)) < 0) // 將user argv[0] 內容取出
-          printf("<bad ptr>");
-        else
-          printf("\"%s\"", buf);
+        }
       } else {
         printf("%d", (int)arg0);
       }
